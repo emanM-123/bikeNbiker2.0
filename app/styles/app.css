@@ -12,6 +12,11 @@ img {
   border-radius: 4px;
 }
 
+.invert-logo {
+  /* filter: invert(1); */
+}
+
+
 /*
 * --------------------------------------------------
 * components/Aside
