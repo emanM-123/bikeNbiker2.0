@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 # Hydrogen template: Skeleton
 
 Hydrogen is Shopify’s stack for headless commerce. Hydrogen is designed to dovetail with [Remix](https://remix.run/), Shopify’s full stack web framework. This template contains a **minimal setup** of components, queries and tooling to get started with Hydrogen.
@@ -88,3 +89,6 @@ Alternately, the values of the required environment variables "PUBLIC_CUSTOMER_A
 =======
 # HondaBikeWorld
 >>>>>>> a802c517f1d1983fc53edc2afafc5aa959c42770
+=======
+# bikeNbiker2.0
+>>>>>>> 67eee8995a25b7f7b4b0ec0438cf45141cde3f9d
