@@ -1,9 +1,9 @@
+
 import React from 'react';
 import { Link } from '@remix-run/react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFacebook, faTwitter, faInstagram } from '@fortawesome/free-brands-svg-icons';
 import { faEnvelope } from '@fortawesome/free-solid-svg-icons';
-
 
 function activeLinkStyle({ isActive, isPending }) {
   return {
@@ -26,8 +26,20 @@ export const Footer = ({ footer }) => {
   const otherLinkData = othersLinks && othersLinks.length > 0 ? othersLinks[0].items.map(item => item) : [];
 
   return (
-    <footer className="bg-black text-white p-8 " style={{ width: '100%' }}>
+    <footer className="bg-black text-white p-8 mt-32 relative" style={{ width: '100%' }}>
       <div className="container mx-auto px-4">
+        <div className="footer-banner-wrapper">
+          <img
+            src="/Footer/Footer_Mobile_app_Banner.png"
+            alt="Footer Banner"
+            className="footer-banner"
+          />
+          <div className="text-overlay">
+            <h1 className="font-bold mb-2">MOBILE APPLICATION</h1>
+            <p className="mb-4">All you need is in your Pocket</p>
+            <button className="download-button">DOWNLOAD NOW</button>
+          </div>
+        </div>
         <div className="grid grid-cols-12 gap-8">
           <div className="col-span-3 flex flex-col space-y-6 ml-16">
             <img src={shop.brand.logo.image.url} alt="Logo" className="h-12" />
@@ -63,6 +75,7 @@ export const Footer = ({ footer }) => {
                   to={item.url}
                   style={activeLinkStyle}
                   className="text-white border-b border-gray-700 py-2"
+                  key={item.url}
                 >
                   {item.title}
                 </Link>
@@ -75,6 +88,7 @@ export const Footer = ({ footer }) => {
                   to={item.url}
                   style={activeLinkStyle}
                   className="text-white border-b border-gray-700 py-2"
+                  key={item.url}
                 >
                   {item.title}
                 </Link>
@@ -90,6 +104,7 @@ export const Footer = ({ footer }) => {
                 to={item.url}
                 style={activeLinkStyle}
                 className="text-white border-b border-gray-700 py-2"
+                key={item.url}
               >
                 {item.title}
               </Link>
@@ -97,10 +112,7 @@ export const Footer = ({ footer }) => {
             <span className="text-white">|</span>
           </div>
         </div>
-
       </div>
     </footer>
   );
 };
-
-

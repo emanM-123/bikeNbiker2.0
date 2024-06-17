@@ -1,0 +1,52 @@
+.yt-layout {
+    padding: 20px;
+  }
+  
+  .video-grid {
+    display: flex;
+    gap: 20px;
+  }
+  
+  .main-video {
+    flex: 2;
+  }
+  
+  .secondary-videos {
+    display: grid;
+    grid-template-rows: repeat(2, auto);
+    gap: 20px;
+    flex: 1;
+  }
+  
+  .video-item {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+  }
+  
+  .video-thumbnail {
+    width: 100%;
+    border-radius: 8px;
+  }
+  
+  .video-thumbnail-small {
+    width: 100px;
+    border-radius: 8px;
+  }
+  
+  .video-details {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  
+  .video-title {
+    font-weight: bold;
+    margin-top: 10px;
+  }
+  
+  .video-stats {
+    font-size: 0.9em;
+    color: gray;
+  }
+  

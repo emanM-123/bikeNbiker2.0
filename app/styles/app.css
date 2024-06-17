@@ -1,19 +1,11 @@
 :root {
-  --aside-width: 400px;
+  /* --aside-width: 400px; */
   --cart-aside-summary-height-with-discount: 300px;
   --cart-aside-summary-height: 250px;
   --grid-item-width: 355px;
   --header-height: 64px;
   --color-dark: #000;
   --color-light: #fff;
-}
-
-img {
-  border-radius: 4px;
-}
-
-.invert-logo {
-  /* filter: invert(1); */
 }
 
 
@@ -158,7 +150,7 @@ button.reset:hover:not(:has(> *)) {
   display: flex;
   height: var(--header-height);
   padding: 0 1rem;
-  position: sticky;
+  position: relative;
   top: 0;
   z-index: 1;
 }
@@ -201,20 +193,48 @@ button.reset:hover:not(:has(> *)) {
 * components/Footer
 * --------------------------------------------------
 */
-.footer {
-  background: var(--color-dark);
-  margin-top: auto;
+
+.footer-banner-wrapper {
+  position: relative;
+  text-align: center;
 }
 
-.footer-menu {
-  align-items: center;
-  display: flex;
-  grid-gap: 1rem;
-  padding: 1rem;
+.footer-banner {
+  width: 90%;
+  margin: 0 auto;
+  position: relative;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
-.footer-menu a {
-  color: var(--color-light);
+.text-overlay {
+  position: absolute;
+  width: 100%;
+  left: 60%;
+  top: 2%;
+  transform: translate(-50%, -50%);
+  text-align: left;
+  z-index: 2; 
+}
+
+.text-overlay h1{
+  font-weight: bold;
+  font-size: 2rem;
+  margin-bottom: 20px;
+}
+
+.text-overlay p{
+  font-size: 1.2rem;
+  margin-bottom: 20px;
+}
+
+.download-button{
+  font-weight: bold;
+  cursor: pointer;
+}
+.footer .container {
+  padding-left: 60px;
+  padding-right: 60px;
 }
 
 /*
@@ -222,6 +242,7 @@ button.reset:hover:not(:has(> *)) {
 * components/Cart
 * --------------------------------------------------
 */
+
 .cart-main {
   height: 100%;
   max-height: calc(100vh - var(--cart-aside-summary-height));
@@ -489,3 +510,4 @@ button.reset:hover:not(:has(> *)) {
 .account-logout {
   display: inline-block;
 }
+

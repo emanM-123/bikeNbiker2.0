@@ -5,29 +5,27 @@ import {
   Meta,
   useMatches,
   Scripts,
-  useRouteError,
   useRouteLoaderData,
   ScrollRestoration,
-  isRouteErrorResponse,
 } from '@remix-run/react';
 import favicon from '~/assets/favicon.svg';
 import resetStyles from '~/styles/reset.css?url';
 import appStyles from '~/styles/app.css?url';
 import tailwindStyles from '~/styles/tailwind.css?url';
+import bannerStyles from '~/styles/banner.css?url';
+import cardStyles from '~/styles/card.css?url';
+import ytLayoutStyles from '~/styles/ytLayout.css?url';
 import { PageLayout } from '~/components/PageLayout';
 import { FOOTER_QUERY, HEADER_QUERY } from '~/lib/fragments';
+import Homepage from '~/routes/_index';
 
 /**
- * This is important to avoid re-fetching root queries on sub-navigations
  * @type {ShouldRevalidateFunction}
  */
 export const shouldRevalidate = ({ formMethod, currentUrl, nextUrl }) => {
-  // revalidate when a mutation is performed e.g add to cart, login...
   if (formMethod && formMethod !== 'GET') {
     return true;
   }
-
-  // revalidate when manually revalidating via useRevalidator
   if (currentUrl.toString() === nextUrl.toString()) {
     return true;
   }
@@ -40,6 +38,9 @@ export function links() {
     { rel: 'stylesheet', href: resetStyles },
     { rel: 'stylesheet', href: appStyles },
     { rel: 'stylesheet', href: tailwindStyles },
+    { rel: 'stylesheet', href: bannerStyles },
+    { rel: 'stylesheet', href: cardStyles },
+    { rel: 'stylesheet', href: ytLayoutStyles},
     {
       rel: 'preconnect',
       href: 'https://cdn.shopify.com',
@@ -63,29 +64,31 @@ export const useRootLoaderData = () => {
 /**
  * @param {LoaderFunctionArgs} args
  */
-export async function loader({context}) {
-  const {storefront,cart} = context;
-  const cartPromise = cart.get();
-
+export async function loader({ context }) {
+  const { storefront } = context;
   const footerPromise = storefront.query(FOOTER_QUERY, {
     cache: storefront.CacheLong(),
     variables: {
-      footerMenuHandle: 'footer', 
+      footerMenuHandle: 'footer',
     },
   });
   const headerPromise = storefront.query(HEADER_QUERY, {
     cache: storefront.CacheLong(),
     variables: {
-      headerMenuHandle: 'main-menu', 
+      headerMenuHandle: 'main-menu',
     },
   });
 
+  const ytVideos = await fetch(
+    'https://www.googleapis.com/youtube/v3/search?key=AIzaSyB7sm__GfyLIzJf-On9fnjqSCWgo3kqMGY&part=snippet&maxResults=50&channelId=UCCwtKebSwY_Q-0AA4O_m_uQ&order=date'
+  );
+  const ytVideosJson = await ytVideos.json();
   return defer(
     {
-      cart: cartPromise,
       footer: await footerPromise,
       header: await headerPromise,
-    } 
+      ytVideos: ytVideosJson.items,
+    }
   );
 }
 
@@ -108,9 +111,9 @@ function Layout({ children }) {
       <body>
         {data ? (
           <PageLayout {...data}>{children}</PageLayout>
-        ) : (
+        ) :
           children
-        )}
+        }
         <ScrollRestoration nonce={nonce} />
         <Scripts nonce={nonce} />
       </body>
@@ -121,37 +124,11 @@ function Layout({ children }) {
 export default function App() {
   return (
     <Layout>
-      {/* <Outlet /> */}
+      <Homepage />
     </Layout>
   );
 }
 
-export function ErrorBoundary() {
-  const error = useRouteError();
-  let errorMessage = 'Unknown error';
-  let errorStatus = 500;
-
-  if (isRouteErrorResponse(error)) {
-    errorMessage = error?.data?.message ?? error.data;
-    errorStatus = error.status;
-  } else if (error instanceof Error) {
-    errorMessage = error.message;
-  }
-
-  return (
-    <Layout>
-      <div className="route-error">
-        <h1>Oops</h1>
-        <h2>{errorStatus}</h2>
-        {errorMessage && (
-          <fieldset>
-            <pre>{errorMessage}</pre>
-          </fieldset>
-        )}
-      </div>
-    </Layout>
-  );
-}
 
 /** @typedef {LoaderReturnData} RootLoader */
 
