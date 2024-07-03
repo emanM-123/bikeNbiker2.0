@@ -1,7 +1,11 @@
 /* eslint-disable eslint-comments/disable-enable-pair */
 /* eslint-disable eslint-comments/no-unlimited-disable */
 /* eslint-disable */
+<<<<<<< HEAD
 import type * as StorefrontAPI from '@shopify/hydrogen/storefront-api-types';
+=======
+import * as StorefrontAPI from '@shopify/hydrogen/storefront-api-types';
+>>>>>>> f6ba125641b55fe5ea64ab05669550a7c654d9ed
 
 export type MoneyFragment = Pick<
   StorefrontAPI.MoneyV2,

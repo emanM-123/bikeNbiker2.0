@@ -20,7 +20,6 @@ const Pulp = () => {
             hoverTitle: 'Utility',
             hoverDescription: `Discover critical components for motorcycle safety & longivevity with Bikenbiker's pulp series`,
             hoverPosition: { top: '160px', left: '90px', width: '220px' }
-
         },
         {
             backgroundImage: '/Cards/Luggage.png',

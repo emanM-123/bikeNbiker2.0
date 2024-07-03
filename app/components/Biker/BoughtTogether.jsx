@@ -30,6 +30,7 @@ const dummyProducts = [
 ];
 
 const BoughtTogether = () => {
+    console.log('Dummy Products:', dummyProducts);
 
     return (
         <div className="produt-arrival-container1">
