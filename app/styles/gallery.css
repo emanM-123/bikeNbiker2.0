@@ -1,0 +1,41 @@
+.gallery-heading {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.gallery-heading .gallery-title {
+    margin-left: 60px;
+}
+
+.gallery-heading p {
+    color: red;
+    font-size: 1rem;
+    font-weight: bold;
+    margin-left: 10px;
+}
+
+.gallery-heading h1 {
+    font-size: 3rem;
+    font-weight: bolder;
+    margin-left: 10px;
+}
+
+.gallery-heading img {
+    width: 250px;
+    height: 270px;
+    margin-left: 38%;
+}
+
+.gallery-images {
+    margin-top: -40px;
+    display: flex;
+    flex-direction: row;
+}
+
+.gallery-images img {
+    width: 92%;
+    height: auto;
+    border-radius: 10px;
+    margin-left: 60PX;  
+}

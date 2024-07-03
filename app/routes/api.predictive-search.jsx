@@ -1,6 +1,5 @@
 import {json} from '@shopify/remix-oxygen';
 import {NO_PREDICTIVE_SEARCH_RESULTS} from '~/components/Search';
-import {applyTrackingParams} from '~/lib/search';
 
 const DEFAULT_SEARCH_TYPES = [
   'ARTICLE',
@@ -15,16 +14,18 @@ const DEFAULT_SEARCH_TYPES = [
  * requested by the SearchForm component
  * @param {LoaderFunctionArgs}
  */
-export async function loader({request, params, context}) {
+export async function action({request, params, context}) {
+  if (request.method !== 'POST') {
+    throw new Error('Invalid request method');
+  }
+
   const search = await fetchPredictiveSearchResults({
     params,
     request,
     context,
   });
 
-  return json(search, {
-    headers: {'Cache-Control': `max-age=${search.searchTerm ? 60 : 3600}`},
-  });
+  return json(search);
 }
 
 /**
@@ -32,11 +33,17 @@ export async function loader({request, params, context}) {
  */
 async function fetchPredictiveSearchResults({params, request, context}) {
   const url = new URL(request.url);
+  const mongoUrl="https://ap-south-1.aws.data.mongodb-api.com/app/data-obqhs/endpoint/data/v1/action/aggregate";
   const searchParams = new URLSearchParams(url.search);
-  const searchTerm = searchParams.get('q') || '';
-  const limit = Number(searchParams.get('limit') || 10);
-  const rawTypes = String(searchParams.get('type') || 'ANY');
-
+  let body;
+  try {
+    body = await request.formData();
+  } catch (error) {}
+  const searchTerm = String(body?.get('q') || searchParams.get('q') || '');
+  const limit = Number(body?.get('limit') || searchParams.get('limit') || 10);
+  const rawTypes = String(
+    body?.get('type') || searchParams.get('type') || 'ANY',
+  );
   const searchTypes =
     rawTypes === 'ANY'
       ? DEFAULT_SEARCH_TYPES
@@ -62,10 +69,73 @@ async function fetchPredictiveSearchResults({params, request, context}) {
     },
   });
 
+
+  const response = await fetch(mongoUrl, {
+          method: 'POST',
+          headers: {
+            'Content-type': 'application/json',
+            'api-key':'p6iDzr1GTWhADsQbAX0CkGtkYP1R5aEUqcYhmF6mQQ2smGSixOBiBC9JGrO7vqvZ',
+          },
+          body: JSON.stringify({
+        "dataSource": "Cluster0",
+        "database": "Bikenbiker",
+        "collection": "Products",
+        "pipeline": [
+            {
+                "$search": {
+                    "index": "productsAutoComplete",
+                "compound": {
+            "should": [
+                {
+                    "autocomplete": {
+                        "query":searchTerm,
+                        "path": "title"
+                    }
+                },
+                {
+                    "autocomplete": {
+                        "query":searchTerm,
+                        "path": "variants.sku"
+                    }
+                }
+            ]
+        }
+                }
+            },
+            {
+                "$limit": 10
+            },
+            {
+                "$project": {
+                    "_id": 0,
+                    "title": 1,
+                    "images":1,
+                    "vendor": 1,
+                  "handle": 1,
+                    "variants.sku": 1,
+                    "variants.price": 1,
+                    "score": {
+                        "$meta": "searchScore"
+                    }
+                }
+            }
+        ]
+    })
+        });
+
+  	if (!response.ok) {
+          throw new Error(
+            `Error fetching from rick and morty api: ${response.statusText}`,
+          );
+        }
+
+        const json = await response.json();
+
   if (!data) {
     throw new Error('No data returned from Shopify API');
   }
-
+data.predictiveSearch.mongo = json.documents;
+  console.log(data.predictiveSearch);
   const searchResults = normalizePredictiveSearchResults(
     data.predictiveSearch,
     params.locale,
@@ -86,6 +156,18 @@ export function normalizePredictiveSearchResults(predictiveSearch, locale) {
       results: NO_PREDICTIVE_SEARCH_RESULTS,
       totalResults,
     };
+  }
+
+  function applyTrackingParams(resource, params) {
+    if (params) {
+      return resource.trackingParameters
+        ? `?${params}&${resource.trackingParameters}`
+        : `?${params}`;
+    } else {
+      return resource.trackingParameters
+        ? `?${resource.trackingParameters}`
+        : '';
+    }
   }
 
   const localePrefix = locale ? `/${locale}` : '';
@@ -124,6 +206,7 @@ export function normalizePredictiveSearchResults(predictiveSearch, locale) {
           __typename: product.__typename,
           handle: product.handle,
           id: product.id,
+          sku:product.variants?.nodes?.[0]?.sku,
           image: product.variants?.nodes?.[0]?.image,
           title: product.title,
           url: `${localePrefix}/products/${product.handle}${trackingParams}`,
@@ -181,7 +264,26 @@ export function normalizePredictiveSearchResults(predictiveSearch, locale) {
           id: article.id,
           image: article.image,
           title: article.title,
-          url: `${localePrefix}/blogs/${article.blog.handle}/${article.handle}/${trackingParams}`,
+          url: `${localePrefix}/blog/${article.handle}${trackingParams}`,
+        };
+      }),
+    });
+  }
+    if (predictiveSearch.mongo.length) {
+    results.push({
+      type: 'mongo',
+      items: predictiveSearch.mongo.map((mongo, index) => {
+        totalResults++;
+        const trackingParams = applyTrackingParams(mongo);
+        
+        return {
+          __typename: mongo._id,
+          handle: mongo.vendor,
+          id: mongo._id,
+          image: mongo.images,
+          title: mongo.title,
+          url: `${localePrefix}/products/${mongo.handle}${trackingParams}`,
+          sku: mongo.variants[0].sku,
         };
       }),
     });
@@ -196,9 +298,6 @@ const PREDICTIVE_SEARCH_QUERY = `#graphql
     id
     title
     handle
-    blog {
-      handle
-    }
     image {
       url
       altText
@@ -236,6 +335,7 @@ const PREDICTIVE_SEARCH_QUERY = `#graphql
     variants(first: 1) {
       nodes {
         id
+        sku
         image {
           url
           altText
@@ -289,13 +389,18 @@ const PREDICTIVE_SEARCH_QUERY = `#graphql
 `;
 
 /**
+ * @typedef {| PredictiveArticleFragment
+ *   | PredictiveCollectionFragment
+ *   | PredictivePageFragment
+ *   | PredictiveProductFragment} PredictiveSearchResultItem
+ */
+/**
  * @typedef {| 'ARTICLE'
  *   | 'COLLECTION'
  *   | 'PAGE'
  *   | 'PRODUCT'
  *   | 'QUERY'} PredictiveSearchTypes
  */
-/** @typedef {Class<loader>} PredictiveSearchAPILoader */
 
 /** @typedef {import('@shopify/remix-oxygen').LoaderFunctionArgs} LoaderFunctionArgs */
 /** @typedef {import('~/components/Search').NormalizedPredictiveSearch} NormalizedPredictiveSearch */
@@ -306,4 +411,4 @@ const PREDICTIVE_SEARCH_QUERY = `#graphql
 /** @typedef {import('storefrontapi.generated').PredictiveProductFragment} PredictiveProductFragment */
 /** @typedef {import('storefrontapi.generated').PredictiveQueryFragment} PredictiveQueryFragment */
 /** @typedef {import('storefrontapi.generated').PredictiveSearchQuery} PredictiveSearchQuery */
-/** @typedef {import('@shopify/remix-oxygen').SerializeFrom<typeof loader>} LoaderReturnData */
+/** @typedef {import('@shopify/remix-oxygen').SerializeFrom<typeof action>} ActionReturnData */

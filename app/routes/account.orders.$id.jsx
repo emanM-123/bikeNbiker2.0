@@ -1,7 +1,6 @@
 import {json, redirect} from '@shopify/remix-oxygen';
-import {useLoaderData} from '@remix-run/react';
+import {Link, useLoaderData} from '@remix-run/react';
 import {Money, Image, flattenConnection} from '@shopify/hydrogen';
-import {CUSTOMER_ORDER_QUERY} from '~/graphql/customer-account/CustomerOrderQuery';
 
 /**
  * @type {MetaFunction<typeof loader>}
@@ -14,27 +13,29 @@ export const meta = ({data}) => {
  * @param {LoaderFunctionArgs}
  */
 export async function loader({params, context}) {
+  const {session, storefront} = context;
+
   if (!params.id) {
     return redirect('/account/orders');
   }
 
   const orderId = atob(params.id);
-  const {data, errors} = await context.customerAccount.query(
-    CUSTOMER_ORDER_QUERY,
-    {
-      variables: {orderId},
-    },
-  );
+  const customerAccessToken = await session.get('customerAccessToken');
 
-  if (errors?.length || !data?.order) {
-    throw new Error('Order not found');
+  if (!customerAccessToken) {
+    return redirect('/account/login');
   }
 
-  const {order} = data;
+  const {order} = await storefront.query(CUSTOMER_ORDER_QUERY, {
+    variables: {orderId},
+  });
+
+  if (!order || !('lineItems' in order)) {
+    throw new Response('Order not found', {status: 404});
+  }
 
   const lineItems = flattenConnection(order.lineItems);
   const discountApplications = flattenConnection(order.discountApplications);
-  const fulfillmentStatus = flattenConnection(order.fulfillments)[0].status;
 
   const firstDiscount = discountApplications[0]?.value;
 
@@ -45,31 +46,17 @@ export async function loader({params, context}) {
     firstDiscount?.__typename === 'PricingPercentageValue' &&
     firstDiscount?.percentage;
 
-  return json(
-    {
-      order,
-      lineItems,
-      discountValue,
-      discountPercentage,
-      fulfillmentStatus,
-    },
-    {
-      headers: {
-        'Set-Cookie': await context.session.commit(),
-      },
-    },
-  );
-}
-
-export default function OrderRoute() {
-  /** @type {LoaderReturnData} */
-  const {
+  return json({
     order,
     lineItems,
     discountValue,
     discountPercentage,
-    fulfillmentStatus,
-  } = useLoaderData();
+  });
+}
+
+export default function OrderRoute() {
+  /** @type {LoaderReturnData} */
+  const {order, lineItems, discountValue, discountPercentage} = useLoaderData();
   return (
     <div className="account-order">
       <h2>Order {order.name}</h2>
@@ -118,7 +105,7 @@ export default function OrderRoute() {
                 <p>Subtotal</p>
               </th>
               <td>
-                <Money data={order.subtotal} />
+                <Money data={order.subtotalPriceV2} />
               </td>
             </tr>
             <tr>
@@ -129,7 +116,7 @@ export default function OrderRoute() {
                 <p>Tax</p>
               </th>
               <td>
-                <Money data={order.totalTax} />
+                <Money data={order.totalTaxV2} />
               </td>
             </tr>
             <tr>
@@ -140,7 +127,7 @@ export default function OrderRoute() {
                 <p>Total</p>
               </th>
               <td>
-                <Money data={order.totalPrice} />
+                <Money data={order.totalPriceV2} />
               </td>
             </tr>
           </tfoot>
@@ -149,16 +136,17 @@ export default function OrderRoute() {
           <h3>Shipping Address</h3>
           {order?.shippingAddress ? (
             <address>
-              <p>{order.shippingAddress.name}</p>
-              {order.shippingAddress.formatted ? (
-                <p>{order.shippingAddress.formatted}</p>
+              <p>
+                {order.shippingAddress.firstName &&
+                  order.shippingAddress.firstName + ' '}
+                {order.shippingAddress.lastName}
+              </p>
+              {order?.shippingAddress?.formatted ? (
+                order.shippingAddress.formatted.map((line) => (
+                  <p key={line}>{line}</p>
+                ))
               ) : (
-                ''
-              )}
-              {order.shippingAddress.formattedArea ? (
-                <p>{order.shippingAddress.formattedArea}</p>
-              ) : (
-                ''
+                <></>
               )}
             </address>
           ) : (
@@ -166,13 +154,13 @@ export default function OrderRoute() {
           )}
           <h3>Status</h3>
           <div>
-            <p>{fulfillmentStatus}</p>
+            <p>{order.fulfillmentStatus}</p>
           </div>
         </div>
       </div>
       <br />
       <p>
-        <a target="_blank" href={order.statusPageUrl} rel="noreferrer">
+        <a target="_blank" href={order.statusUrl} rel="noreferrer">
           View Order Status →
         </a>
       </p>
@@ -185,32 +173,150 @@ export default function OrderRoute() {
  */
 function OrderLineRow({lineItem}) {
   return (
-    <tr key={lineItem.id}>
+    <tr key={lineItem.variant.id}>
       <td>
         <div>
-          {lineItem?.image && (
-            <div>
-              <Image data={lineItem.image} width={96} height={96} />
-            </div>
-          )}
+          <Link to={`/products/${lineItem.variant.product.handle}`}>
+            {lineItem?.variant?.image && (
+              <div>
+                <Image data={lineItem.variant.image} width={96} height={96} />
+              </div>
+            )}
+          </Link>
           <div>
             <p>{lineItem.title}</p>
-            <small>{lineItem.variantTitle}</small>
+            <small>{lineItem.variant.title}</small>
           </div>
         </div>
       </td>
       <td>
-        <Money data={lineItem.price} />
+        <Money data={lineItem.variant.price} />
       </td>
       <td>{lineItem.quantity}</td>
       <td>
-        <Money data={lineItem.totalDiscount} />
+        <Money data={lineItem.discountedTotalPrice} />
       </td>
     </tr>
   );
 }
 
+// NOTE: https://shopify.dev/docs/api/storefront/latest/objects/Order
+const CUSTOMER_ORDER_QUERY = `#graphql
+  fragment OrderMoney on MoneyV2 {
+    amount
+    currencyCode
+  }
+  fragment AddressFull on MailingAddress {
+    address1
+    address2
+    city
+    company
+    country
+    countryCodeV2
+    firstName
+    formatted
+    id
+    lastName
+    name
+    phone
+    province
+    provinceCode
+    zip
+  }
+  fragment DiscountApplication on DiscountApplication {
+    value {
+      __typename
+      ... on MoneyV2 {
+        ...OrderMoney
+      }
+      ... on PricingPercentageValue {
+        percentage
+      }
+    }
+  }
+  fragment OrderLineProductVariant on ProductVariant {
+    id
+    image {
+      altText
+      height
+      url
+      id
+      width
+    }
+    price {
+      ...OrderMoney
+    }
+    product {
+      handle
+    }
+    sku
+    title
+  }
+  fragment OrderLineItemFull on OrderLineItem {
+    title
+    quantity
+    discountAllocations {
+      allocatedAmount {
+        ...OrderMoney
+      }
+      discountApplication {
+        ...DiscountApplication
+      }
+    }
+    originalTotalPrice {
+      ...OrderMoney
+    }
+    discountedTotalPrice {
+      ...OrderMoney
+    }
+    variant {
+      ...OrderLineProductVariant
+    }
+  }
+  fragment Order on Order {
+    id
+    name
+    orderNumber
+    statusUrl
+    processedAt
+    fulfillmentStatus
+    totalTaxV2 {
+      ...OrderMoney
+    }
+    totalPriceV2 {
+      ...OrderMoney
+    }
+    subtotalPriceV2 {
+      ...OrderMoney
+    }
+    shippingAddress {
+      ...AddressFull
+    }
+    discountApplications(first: 100) {
+      nodes {
+        ...DiscountApplication
+      }
+    }
+    lineItems(first: 100) {
+      nodes {
+        ...OrderLineItemFull
+      }
+    }
+  }
+  query Order(
+    $country: CountryCode
+    $language: LanguageCode
+    $orderId: ID!
+  ) @inContext(country: $country, language: $language) {
+    order: node(id: $orderId) {
+      ... on Order {
+        ...Order
+      }
+    }
+  }
+`;
+
 /** @typedef {import('@shopify/remix-oxygen').LoaderFunctionArgs} LoaderFunctionArgs */
 /** @template T @typedef {import('@remix-run/react').MetaFunction<T>} MetaFunction */
-/** @typedef {import('customer-accountapi.generated').OrderLineItemFullFragment} OrderLineItemFullFragment */
+/** @typedef {import('storefrontapi.generated').OrderLineItemFullFragment} OrderLineItemFullFragment */
 /** @typedef {import('@shopify/remix-oxygen').SerializeFrom<typeof loader>} LoaderReturnData */

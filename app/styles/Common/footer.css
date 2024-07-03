@@ -1,0 +1,43 @@
+
+.footer-banner-wrapper {
+  position: relative;
+  text-align: center;
+}
+
+.footer-banner {
+  width: 90%;
+  margin: 0 auto;
+  position: relative;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.text-overlay {
+  position: absolute;
+  width: 100%;
+  left: 60%;
+  top: 2%;
+  transform: translate(-50%, -50%);
+  text-align: left;
+  z-index: 2; 
+}
+
+.text-overlay h1{
+  font-weight: bold;
+  font-size: 2rem;
+  margin-bottom: 20px;
+}
+
+.text-overlay p{
+  font-size: 1.2rem;
+  margin-bottom: 20px;
+}
+
+.download-button{
+  font-weight: bold;
+  cursor: pointer;
+}
+.footer .container {
+  padding-left: 60px;
+  padding-right: 60px;
+}

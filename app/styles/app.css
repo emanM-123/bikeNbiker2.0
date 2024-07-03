@@ -1,5 +1,5 @@
 :root {
-  --aside-width: 400px;
+  /* --aside-width: 400px; */
   --cart-aside-summary-height-with-discount: 300px;
   --cart-aside-summary-height: 250px;
   --grid-item-width: 355px;
@@ -8,9 +8,6 @@
   --color-light: #fff;
 }
 
-img {
-  border-radius: 4px;
-}
 
 /*
 * --------------------------------------------------
@@ -153,7 +150,7 @@ button.reset:hover:not(:has(> *)) {
   display: flex;
   height: var(--header-height);
   padding: 0 1rem;
-  position: sticky;
+  position: relative;
   top: 0;
   z-index: 1;
 }
@@ -196,27 +193,14 @@ button.reset:hover:not(:has(> *)) {
 * components/Footer
 * --------------------------------------------------
 */
-.footer {
-  background: var(--color-dark);
-  margin-top: auto;
-}
 
-.footer-menu {
-  align-items: center;
-  display: flex;
-  grid-gap: 1rem;
-  padding: 1rem;
-}
-
-.footer-menu a {
-  color: var(--color-light);
-}
 
 /*
 * --------------------------------------------------
 * components/Cart
 * --------------------------------------------------
 */
+
 .cart-main {
   height: 100%;
   max-height: calc(100vh - var(--cart-aside-summary-height));
@@ -484,3 +468,4 @@ button.reset:hover:not(:has(> *)) {
 .account-logout {
   display: inline-block;
 }
+

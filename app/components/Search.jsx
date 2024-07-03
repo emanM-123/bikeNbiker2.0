@@ -309,6 +309,47 @@ export function PredictiveSearchResults() {
   );
 }
 
+export function MainPredictiveSearchResults() {
+  const {results, totalResults, searchInputRef, searchTerm} =
+    usePredictiveSearch();
+
+  function goToSearchResult(event) {
+    if (!searchInputRef.current) return;
+    searchInputRef.current.blur();
+    searchInputRef.current.value = '';
+    // close the aside
+    window.location.href = event.currentTarget.href;
+  }
+
+  if (!totalResults) {
+    return <NoPredictiveSearchResults searchTerm={searchTerm} />;
+  }
+  return (
+    <div className="predictive-search-results">
+      <div className="grid grid-cols-3 gap-4">
+        {results.map(({type, items}) => (
+          <PredictiveSearchResult
+            goToSearchResult={goToSearchResult}
+            items={items}
+            key={type}
+            searchTerm={searchTerm}
+            type={type}
+          />
+        ))}
+      </div>
+      {/* view all results /search?q=term */}
+      {searchTerm.current && (
+        <Link onClick={goToSearchResult} to={`/search?q=${searchTerm.current}`}>
+          <p>
+            View all results for <q>{searchTerm.current}</q>
+            &nbsp; →
+          </p>
+        </Link>
+      )}
+    </div>
+  );
+}
+
 /**
  * @param {{
  *   searchTerm: React.MutableRefObject<string>;

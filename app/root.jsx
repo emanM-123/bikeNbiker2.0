@@ -1,32 +1,45 @@
-import {useNonce, getShopAnalytics, Analytics} from '@shopify/hydrogen';
-import {defer} from '@shopify/remix-oxygen';
+import { useNonce } from '@shopify/hydrogen';
+import { defer } from '@shopify/remix-oxygen';
 import {
   Links,
   Meta,
-  Outlet,
+  useMatches,
   Scripts,
-  useRouteError,
   useRouteLoaderData,
   ScrollRestoration,
-  isRouteErrorResponse,
+  Outlet
 } from '@remix-run/react';
 import favicon from '~/assets/favicon.svg';
 import resetStyles from '~/styles/reset.css?url';
 import appStyles from '~/styles/app.css?url';
-import {PageLayout} from '~/components/PageLayout';
-import {FOOTER_QUERY, HEADER_QUERY} from '~/lib/fragments';
+import tailwindStyles from '~/styles/tailwind.css?url';
+import bannerStyles from '~/styles/banner.css?url';
+import cardStyles from '~/styles/card.css?url';
+import ytLayoutStyles from '~/styles/ytLayout.css?url';
+import aboutUsStyles from '~/styles/aboutUs.css?url';
+import headerStyles from '~/styles/Common/header.css?url';
+import galleryStyles from '~/styles/gallery.css?url';
+import instaStyles from '~/styles/insta.css?url';
+import reviewStyles from '~/styles/review.css?url';
+import brandStyles from '~/styles/Bike/brand.css?url';
+import productCardStyles from '~/styles/Common/productCard.css?url';
+import productCard2Styles from '~/styles/Common/productCard2.css?url';
+import footerStyles from '~/styles/Common/footer.css?url';
+import newArrivalStyles from '~/styles/Bike/newArrival.css?url';
+import imageCardStyles from '~/styles/Common/imageCard.css?url';
+import uniProductStyles from "~/styles/Bike/uniProduct.css?url";
+import gearsStyles from "~/styles/Biker/gears.css?url";
+import bikesStyles from "~/styles/Bike/bikes.css?url";
+import { PageLayout } from '~/components/PageLayout';
+import { FOOTER_QUERY, HEADER_QUERY } from '~/lib/fragments';
 
 /**
- * This is important to avoid re-fetching root queries on sub-navigations
  * @type {ShouldRevalidateFunction}
  */
-export const shouldRevalidate = ({formMethod, currentUrl, nextUrl}) => {
-  // revalidate when a mutation is performed e.g add to cart, login...
+export const shouldRevalidate = ({ formMethod, currentUrl, nextUrl }) => {
   if (formMethod && formMethod !== 'GET') {
     return true;
   }
-
-  // revalidate when manually revalidating via useRevalidator
   if (currentUrl.toString() === nextUrl.toString()) {
     return true;
   }
@@ -36,8 +49,26 @@ export const shouldRevalidate = ({formMethod, currentUrl, nextUrl}) => {
 
 export function links() {
   return [
-    {rel: 'stylesheet', href: resetStyles},
-    {rel: 'stylesheet', href: appStyles},
+    { rel: 'stylesheet', href: resetStyles },
+    { rel: 'stylesheet', href: appStyles },
+    { rel: 'stylesheet', href: tailwindStyles },
+    { rel: 'stylesheet', href: bannerStyles },
+    { rel: 'stylesheet', href: cardStyles },
+    { rel: 'stylesheet', href: ytLayoutStyles },
+    { rel: 'stylesheet', href: aboutUsStyles },
+    { rel: 'stylesheet', href: headerStyles },
+    { rel: 'stylesheet', href: galleryStyles },
+    { rel: 'stylesheet', href: instaStyles },
+    { rel: 'stylesheet', href: reviewStyles },
+    { rel: 'stylesheet', href: brandStyles },
+    { rel: 'stylesheet', href: newArrivalStyles },
+    { rel: 'stylesheet', href: productCardStyles },
+    { rel: 'stylesheet', href: uniProductStyles },
+    { rel: 'stylesheet', href: imageCardStyles },
+    { rel: 'stylesheet', href: gearsStyles },
+    { rel: 'stylesheet', href: productCard2Styles },
+    { rel: 'stylesheet', href: footerStyles },
+    { rel: 'stylesheet', href: bikesStyles },
     {
       rel: 'preconnect',
       href: 'https://cdn.shopify.com',
@@ -46,105 +77,61 @@ export function links() {
       rel: 'preconnect',
       href: 'https://shop.app',
     },
-    {rel: 'icon', type: 'image/svg+xml', href: favicon},
+    { rel: 'icon', type: 'image/svg+xml', href: favicon },
   ];
 }
 
 /**
+ * @return {LoaderReturnData}
+ */
+export const useRootLoaderData = () => {
+  const [root] = useMatches();
+  return root?.data;
+};
+
+/**
  * @param {LoaderFunctionArgs} args
  */
-export async function loader(args) {
-  // Start fetching non-critical data without blocking time to first byte
-  const deferredData = loadDeferredData(args);
+export async function loader({ context }) {
+  const { storefront } = context;
+  const footerPromise = storefront.query(FOOTER_QUERY, {
+    cache: storefront.CacheLong(),
+    variables: {
+      footerMenuHandle: 'footer',
+    },
+  });
+  const headerPromise = storefront.query(HEADER_QUERY, {
+    cache: storefront.CacheLong(),
+    variables: {
+      headerMenuHandle: 'main-menu',
+    },
+  });
 
-  // Await the critical data required to render initial state of the page
-  const criticalData = await loadCriticalData(args);
+  const ytVideosResponse = await fetch(
+    'https://www.googleapis.com/youtube/v3/search?key=AIzaSyDiPTTJAygjdGz8P5lRUT6Upj80edzv7Qc&part=snippet&maxResults=50&channelId=UCCwtKebSwY_Q-0AA4O_m_uQ&order=date'
+  );
+  const ytVideosJson = await ytVideosResponse.json();
 
-  const {storefront, env} = args.context;
+  let instagramData = null;
 
   return defer(
     {
-      ...deferredData,
-      ...criticalData,
-      publicStoreDomain: env.PUBLIC_STORE_DOMAIN,
-      shop: getShopAnalytics({
-        storefront,
-        publicStorefrontId: env.PUBLIC_STOREFRONT_ID,
-      }),
-      consent: {
-        checkoutDomain: env.PUBLIC_CHECKOUT_DOMAIN,
-        storefrontAccessToken: env.PUBLIC_STOREFRONT_API_TOKEN,
-      },
-    },
-    {
-      headers: {
-        'Set-Cookie': await args.context.session.commit(),
-      },
-    },
+      footer: await footerPromise,
+      header: await headerPromise,
+      ytVideos: ytVideosJson?.items || [],
+      instagramFeed: instagramData?.data || null,
+    }
   );
-}
-
-/**
- * Load data necessary for rendering content above the fold. This is the critical data
- * needed to render the page. If it's unavailable, the whole page should 400 or 500 error.
- * @param {LoaderFunctionArgs}
- */
-async function loadCriticalData({context}) {
-  const {storefront} = context;
-
-  const [header] = await Promise.all([
-    storefront.query(HEADER_QUERY, {
-      cache: storefront.CacheLong(),
-      variables: {
-        headerMenuHandle: 'main-menu', // Adjust to your header menu handle
-      },
-    }),
-    // Add other queries here, so that they are loaded in parallel
-  ]);
-
-  return {
-    header,
-  };
-}
-
-/**
- * Load data for rendering content below the fold. This data is deferred and will be
- * fetched after the initial page load. If it's unavailable, the page should still 200.
- * Make sure to not throw any errors here, as it will cause the page to 500.
- * @param {LoaderFunctionArgs}
- */
-function loadDeferredData({context}) {
-  const {storefront, customerAccount, cart} = context;
-
-  // defer the footer query (below the fold)
-  const footer = storefront
-    .query(FOOTER_QUERY, {
-      cache: storefront.CacheLong(),
-      variables: {
-        footerMenuHandle: 'footer', // Adjust to your footer menu handle
-      },
-    })
-    .catch((error) => {
-      // Log query errors, but don't throw them so the page can still render
-      console.error(error);
-      return null;
-    });
-  return {
-    cart: cart.get(),
-    isLoggedIn: customerAccount.isLoggedIn(),
-    footer,
-  };
 }
 
 /**
  * @param {{children?: React.ReactNode}}
  */
-function Layout({children}) {
+function Layout({ children }) {
   const nonce = useNonce();
-  /** @type {RootLoader} */
   const data = useRouteLoaderData('root');
-
   return (
+    
     <html lang="en">
       <head>
         <meta charSet="utf-8" />
@@ -154,16 +141,10 @@ function Layout({children}) {
       </head>
       <body>
         {data ? (
-          <Analytics.Provider
-            cart={data.cart}
-            shop={data.shop}
-            consent={data.consent}
-          >
-            <PageLayout {...data}>{children}</PageLayout>
-          </Analytics.Provider>
-        ) : (
+          <PageLayout {...data}>{children}</PageLayout>
+        ) :
           children
-        )}
+        }
         <ScrollRestoration nonce={nonce} />
         <Scripts nonce={nonce} />
       </body>
@@ -179,32 +160,6 @@ export default function App() {
   );
 }
 
-export function ErrorBoundary() {
-  const error = useRouteError();
-  let errorMessage = 'Unknown error';
-  let errorStatus = 500;
-
-  if (isRouteErrorResponse(error)) {
-    errorMessage = error?.data?.message ?? error.data;
-    errorStatus = error.status;
-  } else if (error instanceof Error) {
-    errorMessage = error.message;
-  }
-
-  return (
-    <Layout>
-      <div className="route-error">
-        <h1>Oops</h1>
-        <h2>{errorStatus}</h2>
-        {errorMessage && (
-          <fieldset>
-            <pre>{errorMessage}</pre>
-          </fieldset>
-        )}
-      </div>
-    </Layout>
-  );
-}
 
 /** @typedef {LoaderReturnData} RootLoader */
 

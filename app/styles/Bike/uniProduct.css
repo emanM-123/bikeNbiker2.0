@@ -1,0 +1,29 @@
+.universal-product-container {
+    margin-top: 50px;
+}
+
+.universal-container {
+    width: 80%;
+    margin: auto;
+}
+
+.universal-product {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 25px;
+    margin-left: -40px;
+
+}
+
+
+.category-container {
+    width: 80%;
+    margin: auto;
+}
+
+.category-product {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 25px 30px;
+    margin-left: -40px;
+}

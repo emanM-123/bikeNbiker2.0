@@ -1,0 +1,102 @@
+.fproduct-card {
+    display: flex;
+    width: 40%;
+    height: 200px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.fproduct-checkbox {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    display: flex;
+    align-items: center;
+}
+
+.checkbox {
+    width: 20px;
+    height: 20px;
+    background-color: red;
+    border-radius: 3px;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    position: relative;
+}
+
+/* .checkbox:checked::before {
+    content: '';
+    display: block;
+    width: 10px;
+    height: 10px;
+    border-left: 2px solid white;
+    border-bottom: 2px solid white;
+    transform: rotate(-45deg);
+    position: absolute;
+    top: 3px;
+    left: 5px;
+} */
+
+.fproduct-image {
+    flex: 1;
+    padding: 10px;
+}
+
+.image {
+    width: 100%;
+    height: auto;
+}
+
+.fproduct-divider {
+    width: 2px;
+    height: 80%;
+    background-color: #E0E0E0;
+    margin: 20px 16px;
+}
+
+.fproduct-info {
+    flex: 2;
+    padding: 30px 10px;;
+    display: flex;
+    flex-direction: column;
+}
+
+.checkbox-container {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+}
+
+.checkbox {
+    width: 20px;
+    height: 20px;
+    background-color: red;
+}
+
+.fimage-container{
+    flex: 1;
+    background-color: #F7F7F7;
+    padding: 40px;
+}
+
+.fimage {
+    width: 100%;
+    height: auto;
+}
+
+.fproduct-brand {
+    font-weight: bold;
+}
+
+.fproduct-title {
+    font-size: 16px;
+    margin: 5px 0;
+}
+
+.fproduct-price {
+    font-weight: bold;
+}
+
+
